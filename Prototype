@@ -1,0 +1,162 @@
+#Run this in python, duh
+
+import pygame
+import sys
+
+# Inicialización de Pygame
+pygame.init()
+
+# Tamaño de la ventana y otras constantes
+WIDTH, HEIGHT = 400, 400
+GRID_SIZE = 50
+CUBE_SIZE = 50
+
+# Colores
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+TURQUOISE = (0, 128, 128)
+LIGHTGRAY = (211, 211, 211)
+BLACK = (0,0,0)
+
+# Crear la ventana
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Spooky Blocky")
+
+#--------------------------------------------------------------------------
+# Posición inicial del cubo
+cube_x, cube_y = (4 * GRID_SIZE, 0 * GRID_SIZE) # Jugador
+
+green_cube_x, green_cube_y = (0 * GRID_SIZE, 0 * GRID_SIZE) # Meta
+turquoise_coords= [(2, 0), (2, 1), (0, 2), (3, 2), (7, 2), (3, 3), (7, 3), (1, 4), (2, 4), (4, 4), (5, 4), (1, 5), (5, 5), (3, 6), (3, 7)]
+navy_blue_coords= [(1, 1), (1, 2), (6, 2), (1, 3), (2, 3), (6, 3), (2, 5), (2, 6), (1, 7), (2, 7), (5, 7), (6, 7)]
+black_coords= [(0, 1), (5, 1), (2, 2), (1, 6), (5, 6), (6, 6)]
+#-------------------------------------------------------------------------
+
+#'o': [(0, 2), (0, 5), (1, 3), (1, 5), (1, 6), (2, 1), (2, 2), (2, 3), (2, 5), (3, 5), (4, 0), (4, 1), (4, 2), (4, 3), (4, 5), (4, 7), (5, 5), (6, 2), (6, 5), (7, 2)]
+#'e': [(0, 3), (0, 4), (1, 4), (2, 0), (2, 6), (3, 0), (3, 1), (3, 7), (5, 2), (5, 4), (6, 0), (6, 3), (6, 4), (7, 0)]
+
+turquoise_blocks = [(x * GRID_SIZE, y * GRID_SIZE) for x, y in turquoise_coords]
+navy_blue_blocks = [(x * GRID_SIZE, y * GRID_SIZE) for x, y in navy_blue_coords]
+black_blocks = [(x * GRID_SIZE, y * GRID_SIZE) for x, y in black_coords]
+
+# Variables para el movimiento del cubo
+moving = False
+move_x, move_y = 0, 0
+
+# Variable de estado para controlar el juego
+game_over = False
+
+# Variable para rastrear si se ha mostrado el mensaje de victoria
+victory_message_displayed = False
+
+# Boleano para rastrear si el jugador se ha movido al menos una vez
+player_moved = False
+
+def dibujar_mapa():
+    screen.fill(WHITE)
+    # Dibujar el mapa otra vez
+
+    for x in range(0, WIDTH, GRID_SIZE):
+        pygame.draw.line(screen, RED, (x, 0), (x, HEIGHT))
+    for y in range(0, HEIGHT, GRID_SIZE):
+        pygame.draw.line(screen, RED, (0, y), (WIDTH, y))
+
+    for block_x, block_y in turquoise_blocks:
+        pygame.draw.rect(screen, TURQUOISE, (block_x, block_y, CUBE_SIZE, CUBE_SIZE))
+
+    for block_x, block_y in navy_blue_blocks:
+        pygame.draw.rect(screen, LIGHTGRAY, (block_x, block_y, CUBE_SIZE, CUBE_SIZE))
+
+    for block_x, block_y in black_blocks:
+        pygame.draw.rect(screen, BLACK, (block_x, block_y, CUBE_SIZE, CUBE_SIZE))
+
+    pygame.draw.rect(screen, GREEN, (green_cube_x, green_cube_y, CUBE_SIZE, CUBE_SIZE))
+
+# Iniciar el bucle del juego
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if not game_over:  # Solo permitir entrada del teclado si el juego no ha terminado
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    new_x = cube_x - GRID_SIZE
+                    if cube_x > 0 and all((new_x, cube_y) != (block_x, block_y) for block_x, block_y in turquoise_blocks):
+                        moving = True
+                        move_x, move_y = -GRID_SIZE, 0
+                elif event.key == pygame.K_RIGHT:
+                    new_x = cube_x + GRID_SIZE
+                    if new_x + CUBE_SIZE <= WIDTH and all((new_x, cube_y) != (block_x, block_y) for block_x, block_y in turquoise_blocks):
+                        moving = True
+                        move_x, move_y = GRID_SIZE, 0
+                elif event.key == pygame.K_UP:
+                    new_y = cube_y - GRID_SIZE
+                    if cube_y > 0 and all((cube_x, new_y) != (block_x, block_y) for block_x, block_y in turquoise_blocks):
+                        moving = True
+                        move_x, move_y = 0, -GRID_SIZE
+                elif event.key == pygame.K_DOWN:
+                    new_y = cube_y + GRID_SIZE
+                    if new_y + CUBE_SIZE <= HEIGHT and all((cube_x, new_y) != (block_x, block_y) for block_x, block_y in turquoise_blocks):
+                        moving = True
+                        move_x, move_y = 0, GRID_SIZE
+
+                if moving and not player_moved:
+                    player_moved = True  # El jugador se ha movido al menos una vez
+
+    if moving and not game_over: #moverse
+        cube_x += move_x
+        cube_y += move_y
+        moving = False
+
+    if (cube_x, cube_y) in black_blocks: #ver si moriste
+        game_over = True
+        print("Moriste")
+        cube_x, cube_y = -CUBE_SIZE, -CUBE_SIZE  # Hacer que el cubo rojo desaparezca
+
+
+    
+
+    if not victory_message_displayed and (cube_x, cube_y) == (green_cube_x, green_cube_y):
+        game_over = True  # El juego ha terminado
+        print("¡Ganaste!")
+        victory_message_displayed = True  # Marcar el mensaje de victoria como mostrado
+
+    # Limpiar la pantalla
+    screen.fill(WHITE)
+
+    # Dibujar el mapa de cuadrícula
+    for x in range(0, WIDTH, GRID_SIZE):
+        pygame.draw.line(screen, RED, (x, 0), (x, HEIGHT))
+    for y in range(0, HEIGHT, GRID_SIZE):
+        pygame.draw.line(screen, RED, (0, y), (WIDTH, y))
+
+    # Dibujar el cubo verde (meta)
+    pygame.draw.rect(screen, GREEN, (green_cube_x, green_cube_y, CUBE_SIZE, CUBE_SIZE))
+
+    # Dibujar los bloques turquesa (paredes)
+    if not player_moved or game_over:
+        for block_x, block_y in turquoise_blocks:
+            pygame.draw.rect(screen, TURQUOISE, (block_x, block_y, CUBE_SIZE, CUBE_SIZE))
+    else:
+        # El jugador se ha movido, los bloques turquesa se vuelven invisibles
+        for _ in turquoise_blocks:
+            pass  # No se dibujan para hacerlos invisibles
+
+    # Dibujar los bloques grises (pistas)
+    for block_x, block_y in navy_blue_blocks:
+        pygame.draw.rect(screen, LIGHTGRAY, (block_x, block_y, CUBE_SIZE, CUBE_SIZE))
+
+    # Dibujar los bloques negros (peligro)
+    if not player_moved or game_over:
+        for block_x, block_y in black_blocks:
+            pygame.draw.rect(screen, BLACK, (block_x, block_y, CUBE_SIZE, CUBE_SIZE))
+
+    # Dibujar el cubo
+    pygame.draw.rect(screen, RED, (cube_x, cube_y, CUBE_SIZE, CUBE_SIZE))
+    pygame.display.flip()
+
+# Finalizar Pygame
+pygame.quit()
+sys.exit()
